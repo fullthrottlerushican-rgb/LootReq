@@ -149,34 +149,46 @@
   const successScreen = document.getElementById("successScreen");
   const submittedItemEl = document.getElementById("submittedItem");
 
-  // Paste your **Google Apps Script web app URL** here (the full /exec link)
-  const GAS_URL = "https://script.google.com/macros/s/AKfycbzA0dd6ZN_tDCofOCR2uou_438XVRYbWY2FarWHxyoFNMCdO-pJUtVdcYytkvF8yW9UFg/exec";  
+  // === PASTE YOUR ACTUAL GOOGLE APPS SCRIPT WEB APP URL HERE ===
+  // Go to Apps Script → Deploy → Manage deployments → copy the full link ending in /exec
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbzA0dd6ZN_tDCofOCR2uou_438XVRYbWY2FarWHxyoFNMCdO-pJUtVdcYytkvF8yW9UFg/exec";
+
+  if (!form) {
+    console.error("Form element not found on page!");
+  }
 
   form.addEventListener("submit", async (e) => {
-    e.preventDefault();
+    e.preventDefault(); // Prevent page reload
+    console.log("Form submit intercepted by JavaScript");
+
     statusDiv.textContent = "Submitting request...";
     statusDiv.className = "";
 
     try {
       const formData = new FormData(form);
 
-      // Debug: log what is being sent (open F12 → Console to see)
-      console.log("Sending form data:");
+      // Debug: show exactly what is being sent
+      console.log("Form data being sent:");
       for (let [key, value] of formData.entries()) {
         console.log(`${key}: ${value}`);
       }
 
       const response = await fetch(GAS_URL, {
         method: "POST",
-        body: formData   // FormData → Apps Script will see e.parameter correctly
+        body: formData  // FormData sends multipart/form-data – Apps Script handles this well
       });
 
-      console.log("Response status:", response.status);
+      console.log("Apps Script response status:", response.status);
 
       const text = await response.text();
-      console.log("Response text:", text);
+      console.log("Apps Script raw response:", text);
 
-      const result = JSON.parse(text);
+      let result;
+      try {
+        result = JSON.parse(text);
+      } catch (parseErr) {
+        throw new Error("Server returned invalid JSON: " + text.substring(0, 200));
+      }
 
       if (result.result === "success") {
         submittedItemEl.textContent = formData.get("item") || "that shiny thing";
@@ -184,7 +196,7 @@
         successScreen.style.display = "block";
         statusDiv.textContent = "";
 
-        // Confetti
+        // Confetti animation
         const duration = 3 * 1000;
         const end = Date.now() + duration;
         (function frame() {
