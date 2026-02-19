@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Guild Loot Request Form</title>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
   <style>
     body { 
       font-family: Arial, sans-serif; 
@@ -55,8 +56,38 @@
       color: #ffcccc; 
       border: 1px solid #ff4444;
     }
-    #successScreen { display: none; }
-    #formContainer { display: block; }
+    #successScreen { 
+      display: none; 
+      text-align: center; 
+      animation: fadeInScale 0.8s ease-out forwards;
+    }
+    @keyframes fadeInScale {
+      0% { opacity: 0; transform: scale(0.85); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+    #checkmark {
+      width: 120px;
+      height: 120px;
+      margin: 1rem auto;
+      position: relative;
+    }
+    .checkmark-circle {
+      stroke-dasharray: 166;
+      stroke-dashoffset: 166;
+      stroke-width: 2;
+      stroke-miterlimit: 10;
+      stroke: #7ac142;
+      fill: none;
+      animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+    }
+    .checkmark-check {
+      stroke-dasharray: 48;
+      stroke-dashoffset: 48;
+      animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.6s forwards;
+    }
+    @keyframes stroke {
+      100% { stroke-dashoffset: 0; }
+    }
   </style>
 </head>
 <body>
@@ -72,13 +103,13 @@
     <input type="date" id="requestDate" name="requestDate" required>
 
     <label for="item">Item Name:</label>
-    <input type="text" id="item" name="item" required placeholder="e.g. Thunderfury, Mione's Beanie">
+    <input type="text" id="item" name="item" required placeholder="e.g. Thunderfury, Blessed Blade of the Windseeker">
 
     <label for="requiredItems">Required items to complete set/collection (0 = main spec priority):</label>
     <select id="requiredItems" name="requiredItems" required>
       <option value="">Select number...</option>
       <script>
-        for(let i = 0; i <= 200; i++) {
+        for(let i = 0; i <= 20; i++) {
           document.write(`<option value="${i}">${i}</option>`);
         }
       </script>
@@ -98,10 +129,13 @@
 </div>
 
 <div id="successScreen">
+  <svg id="checkmark" viewBox="0 0 52 52">
+    <circle class="checkmark-circle" cx="26" cy="26" r="25" fill="none"/>
+    <path class="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+  </svg>
   <h2>May the Odds Be Ever in Your Favor...</h2>
   <p style="font-size: 1.3rem; line-height: 1.6;">
-    Your loot request for <strong id="submittedItem"></strong> has been sent to the council.<br>
-    <br>
+    Your loot request for <strong id="submittedItem"></strong> has been sent to the council.<br><br>
     Now go forth, adventurer — may RNGesus smile upon you,<br>
     and may your next pull not be another <em>cloth belt for your plate warrior</em>.
   </p>
@@ -115,33 +149,72 @@
   const successScreen = document.getElementById("successScreen");
   const submittedItemEl = document.getElementById("submittedItem");
 
+  // Paste your **Google Apps Script web app URL** here (the full /exec link)
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbzA0dd6ZN_tDCofOCR2uou_438XVRYbWY2FarWHxyoFNMCdO-pJUtVdcYytkvF8yW9UFg/exec";  
+
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
-    statusDiv.textContent = "Sending your plea to the loot gods...";
+    statusDiv.textContent = "Submitting request...";
     statusDiv.className = "";
 
-    const formData = new FormData(form);
-    const data = Object.fromEntries(formData);
-
     try {
-      const response = await fetch("https://script.google.com/macros/s/AKfycbzA0dd6ZN_tDCofOCR2uou_438XVRYbWY2FarWHxyoFNMCdO-pJUtVdcYytkvF8yW9UFg/exec", {
+      const formData = new FormData(form);
+
+      // Debug: log what is being sent (open F12 → Console to see)
+      console.log("Sending form data:");
+      for (let [key, value] of formData.entries()) {
+        console.log(`${key}: ${value}`);
+      }
+
+      const response = await fetch(GAS_URL, {
         method: "POST",
-        body: new URLSearchParams(data)
+        body: formData   // FormData → Apps Script will see e.parameter correctly
       });
 
-      const result = await response.json();
+      console.log("Response status:", response.status);
+
+      const text = await response.text();
+      console.log("Response text:", text);
+
+      const result = JSON.parse(text);
 
       if (result.result === "success") {
-        // Show success screen
-        submittedItemEl.textContent = data.item || "that shiny thing";
+        submittedItemEl.textContent = formData.get("item") || "that shiny thing";
         formContainer.style.display = "none";
         successScreen.style.display = "block";
-        statusDiv.textContent = ""; // clear status
+        statusDiv.textContent = "";
+
+        // Confetti
+        const duration = 3 * 1000;
+        const end = Date.now() + duration;
+        (function frame() {
+          confetti({
+            particleCount: 5,
+            angle: 60,
+            spread: 55,
+            origin: { x: 0 },
+            colors: ['#ffd700', '#ffaa00', '#ff4444', '#4CAF50']
+          });
+          confetti({
+            particleCount: 5,
+            angle: 120,
+            spread: 55,
+            origin: { x: 1 },
+            colors: ['#ffd700', '#ffaa00', '#ff4444', '#4CAF50']
+          });
+          if (Date.now() < end) requestAnimationFrame(frame);
+        }());
+
+        setTimeout(() => {
+          confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+        }, 500);
       } else {
-        throw new Error(result.error || "Unknown error from server");
+        throw new Error(result.error || "Server returned error");
       }
+
     } catch (err) {
-      statusDiv.textContent = "The loot council rejected your request: " + err.message;
+      console.error("Submit failed:", err);
+      statusDiv.textContent = "Error: " + err.message;
       statusDiv.className = "error";
     }
   });
@@ -157,5 +230,3 @@
 
 </body>
 </html>
-
-
