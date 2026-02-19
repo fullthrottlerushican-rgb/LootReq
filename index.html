@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Guild Loot Request Form</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 600px; margin: 2rem auto; padding: 1rem; }
+    label { display: block; margin: 1rem 0 0.3rem; font-weight: bold; }
+    input, select { width: 100%; padding: 0.5rem; box-sizing: border-box; }
+    .checkbox { margin: 1.5rem 0; }
+    button { padding: 0.8rem 1.5rem; background: #4CAF50; color: white; border: none; cursor: pointer; font-size: 1.1rem; }
+    button:hover { background: #45a049; }
+    #status { margin-top: 1rem; padding: 1rem; border-radius: 4px; }
+    .success { background: #dff0d8; color: #3c763d; }
+    .error   { background: #f2dede; color: #a94442; }
+  </style>
+</head>
+<body>
+
+<h1>Guild Loot Request</h1>
+
+<form id="lootForm">
+  <label for="ingameName">In-game Name:</label>
+  <input type="text" id="ingameName" name="ingameName" required>
+
+  <label for="requestDate">Date (when you want it / raid date):</label>
+  <input type="date" id="requestDate" name="requestDate" required>
+
+  <label for="item">Item Name:</label>
+  <input type="text" id="item" name="item" required placeholder="e.g. Thunderfury, Blessed Blade of the Windseeker">
+
+  <label for="requiredItems">Required items to complete set/collection (0 = main spec priority, higher = more missing):</label>
+  <select id="requiredItems" name="requiredItems" required>
+    <option value="">Select number...</option>
+    <!-- Generate 0-20 -->
+    <script>
+      for(let i = 0; i <= 20; i++) {
+        document.write(`<option value="${i}">${i}</option>`);
+      }
+    </script>
+  </select>
+
+  <div class="checkbox">
+    <input type="checkbox" id="oath" name="oath" value="yes" required>
+    <label for="oath" style="display:inline; font-weight:normal; margin-left:0.5rem;">
+      I will not Blow this Fucking item up
+    </label>
+  </div>
+
+  <button type="submit">Submit Loot Request</button>
+</form>
+
+<div id="status"></div>
+
+<script>
+  const form = document.getElementById("lootForm");
+  const statusDiv = document.getElementById("status");
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    statusDiv.textContent = "Submitting...";
+    statusDiv.className = "";
+
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData);
+
+    try {
+      const response = await fetch("YOUR_WEB_APP_URL_HERE", {
+        method: "POST",
+        body: new URLSearchParams(data) // simpler than FormData for Apps Script
+      });
+
+      const result = await response.json();
+
+      if (result.result === "success") {
+        statusDiv.textContent = "Request submitted successfully! Thanks.";
+        statusDiv.className = "success";
+        form.reset();
+      } else {
+        throw new Error(result.error || "Unknown error");
+      }
+    } catch (err) {
+      statusDiv.textContent = "Error: " + err.message;
+      statusDiv.className = "error";
+    }
+  });
+</script>
+
+</body>
+</html>
